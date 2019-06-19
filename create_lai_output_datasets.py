@@ -4,9 +4,9 @@ import datetime
 import pprint
 from bs4 import BeautifulSoup as Soup
 
-API_TOKEN ='a52a2808-d8d0-41dd-9ec5-447745c82d93'
-CKAN_BASE_URL = 'http://localhost:5000'
-OWNER_ORG_ID = 'epos'
+API_TOKEN =''
+CKAN_BASE_URL = ''
+OWNER_ORG_ID = ''
 
 
 def parse_xml(filePath):
@@ -25,6 +25,13 @@ def parse_xml(filePath):
     extras = [
         { 'key': 'is_output', 'value': True }
     ]
+    fields_mapping = {
+        'abstract': 'abstract',
+        'purpose': 'purpose',
+        'lineage': 'lineage',
+        'supplementalInformation': 'supplemental_information',
+        'fileIdentifier': 'file_identifier',
+    }
 
     for item_node in soup_resp:
 
@@ -36,8 +43,17 @@ def parse_xml(filePath):
                 data_dict['title'] = value.strip()
                 data_dict['name'] = value.strip().replace(' ', '_').lower()
 
-            if key == 'abstract':
-                data_dict['notes'] = value.strip()
+            if key == 'resourceMaintenance':
+                for maintanance_attr in subitem_node.findChildren():
+                    if maintanance_attr.name == 'individualName':
+                        data_dict['maintainer'] = maintanance_attr.text.strip()
+
+                    if maintanance_attr.name == 'electronicMailAddress':
+                        data_dict['maintainer_email'] = maintanance_attr.text.strip()
+
+            if key == 'MD_LegalConstraints':
+                legalNotice = subitem_node.find('CharacterString')
+                extras.append({ 'key': 'legal_notice', 'value': legalNotice.text.strip() })
 
             # We're only given the date so we make timerange_start the start of that day
             # and timerange_end the end of that day
@@ -47,8 +63,12 @@ def parse_xml(filePath):
 
             if key == 'endPosition':
                 end_date = datetime.datetime.strptime(value, '%Y-%m-%d')
-                end_date.replace(hour=23, minute=59)
+                end_date = end_date.replace(hour=23, minute=59, second=59)
                 extras.append({ 'key': 'timerange_end', 'value': end_date.isoformat() })
+
+            for extra_field, normalized_field in fields_mapping.items():
+                if key == extra_field:
+                    extras.append({ 'key': normalized_field, 'value': value.strip() })
 
         # Spatial
         for coordinates in item_node.find_all('EX_GeographicBoundingBox'):
@@ -70,7 +90,7 @@ def parse_xml(filePath):
 
         coord = '{ "type": "Polygon", "coordinates": [[['+west+','+south+'], ['+east+','+south+'], ['+east+','+north+'], ['+west+','+north+'], ['+west+', '+south+']]]}'
 
-        extras.append({'key': 'spatial', 'value': coord.strip()})
+        # extras.append({'key': 'spatial', 'value': coord.strip()})
 
         # Resources
         resources = []
@@ -95,16 +115,20 @@ def create_package(package_attrs):
         Raises: request errors if any
     """
 
-    resp = requests.post('{}/api/action/package_create'.format(CKAN_BASE_URL),
-        data = json.dumps(package_attrs),
-        headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
-        verify=False)
-    print resp.status_code
-    print resp.text
+    try:
+        resp = requests.post('{}/api/action/package_update'.format(CKAN_BASE_URL),
+            data = json.dumps(package_attrs),
+            headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
+            verify=False)
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError:
+        print('Error creating dataset `{}`: {}'.format(package_attrs['name'], resp.text))
+        print('Dataset attributes: {}'.format(package_attrs))
+    else:
+        print('Successfully updated package `{}`'.format(package_attrs['name']))
 
 
 if __name__ == "__main__":
     filePath = '/home/g/Documents/nextgeoss-scripts/bdd2f2af-757b-4612-af74-d0f00c72b2d5.xml'
     package_attrs = parse_xml(filePath)
-    pprint.pprint(package_attrs)
     create_package(package_attrs)
