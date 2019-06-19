@@ -1,5 +1,7 @@
 import requests
 import json
+import os
+import glob
 import datetime
 import pprint
 from bs4 import BeautifulSoup as Soup
@@ -7,6 +9,7 @@ from bs4 import BeautifulSoup as Soup
 API_TOKEN =''
 CKAN_BASE_URL = ''
 OWNER_ORG_ID = ''
+XML_DIR = ''
 
 
 def parse_xml(filePath):
@@ -116,7 +119,7 @@ def create_package(package_attrs):
     """
 
     try:
-        resp = requests.post('{}/api/action/package_update'.format(CKAN_BASE_URL),
+        resp = requests.post('{}/api/action/package_create'.format(CKAN_BASE_URL),
             data = json.dumps(package_attrs),
             headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
             verify=False)
@@ -129,6 +132,8 @@ def create_package(package_attrs):
 
 
 if __name__ == "__main__":
-    filePath = '/home/g/Documents/nextgeoss-scripts/bdd2f2af-757b-4612-af74-d0f00c72b2d5.xml'
-    package_attrs = parse_xml(filePath)
-    create_package(package_attrs)
+    pathFormat = os.path.join(XML_DIR, '*.xml')
+    filePaths = glob.glob(pathFormat)
+    for filePath in filePaths:
+        package_attrs = parse_xml(filePath)
+        create_package(package_attrs)
