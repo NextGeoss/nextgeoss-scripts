@@ -1,15 +1,20 @@
 import requests
 import json
 import os
+import sys
 import glob
 import datetime
 import pprint
 from bs4 import BeautifulSoup as Soup
 
-API_TOKEN =''
-CKAN_BASE_URL = ''
-OWNER_ORG_ID = ''
-XML_DIR = ''
+try:  
+    API_TOKEN = os.environ['API_TOKEN']
+    CKAN_BASE_URL = os.environ['CKAN_BASE_URL']
+    OWNER_ORG_ID = os.environ['OWNER_ORG_ID']
+    XML_DIR = os.environ['XML_DIR']
+except KeyError as missing_key:
+    print('Please set the environment variable for {}'.format(missing_key))
+    sys.exit(1)
 
 
 def parse_xml(filePath):
