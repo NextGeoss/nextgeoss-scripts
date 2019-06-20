@@ -119,9 +119,34 @@ def parse_xml(filePath):
     data_dict['extras'] = extras
     return data_dict
 
+def create_resource(package, filePath):
+    """Creates a resource from the original xml file
+        Returns: the attributes of the newly created resource as a dict
+        Raises: request errors if any
+    """
+
+    resource_data = {
+        'package_id': package['id'],
+        'format': 'XML',
+        "mimetype": "text/xml",
+        "name": package['title'],
+    }
+    try:
+        resp = requests.post('{}/api/action/resource_create'.format(CKAN_BASE_URL),
+                data=resource_data,
+                headers={"Authorization": API_TOKEN},
+                files=[('upload', open(filePath))])
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError:
+        print('Error creating resource `{}`: {}'.format(filePath, resp.text))
+        print('Resource attributes: {}'.format(resource_data))
+    else:
+        print('Successfully created resource `{}`'.format(filePath))
+        return resp.json()
+
 def create_package(package_attrs):
     """Creates a package (dataset) in NextGEOSS from package_attrs
-        Returns: undefined if everything is ok
+        Returns: the attributes of the newly created package as a dict
         Raises: request errors if any
     """
 
@@ -131,11 +156,13 @@ def create_package(package_attrs):
             headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
             verify=False)
         resp.raise_for_status()
-    except requests.exceptions.HTTPError:
+    except requests.exceptions.HTTPError as e:
         print('Error creating dataset `{}`: {}'.format(package_attrs['name'], resp.text))
         print('Dataset attributes: {}'.format(package_attrs))
+        raise e
     else:
         print('Successfully updated package `{}`'.format(package_attrs['name']))
+        return resp.json()
 
 
 if __name__ == "__main__":
@@ -143,4 +170,9 @@ if __name__ == "__main__":
     filePaths = glob.glob(pathFormat)
     for filePath in filePaths:
         package_attrs = parse_xml(filePath)
-        create_package(package_attrs)
+        try:
+            package_response = create_package(package_attrs)
+        except requests.exceptions.HTTPError as e:
+            continue
+        else:
+            resource_response = create_resource(package_response['result'], filePath)
