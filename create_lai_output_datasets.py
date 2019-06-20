@@ -7,7 +7,7 @@ import datetime
 import pprint
 from bs4 import BeautifulSoup as Soup
 
-try:  
+try:
     API_TOKEN = os.environ['API_TOKEN']
     CKAN_BASE_URL = os.environ['CKAN_BASE_URL']
     OWNER_ORG_ID = os.environ['OWNER_ORG_ID']
@@ -98,7 +98,7 @@ def parse_xml(filePath):
 
         coord = '{ "type": "Polygon", "coordinates": [[['+west+','+south+'], ['+east+','+south+'], ['+east+','+north+'], ['+west+','+north+'], ['+west+', '+south+']]]}'
 
-        # extras.append({'key': 'spatial', 'value': coord.strip()})
+        extras.append({'key': 'spatial', 'value': coord.strip()})
 
         # Resources
         resources = []
