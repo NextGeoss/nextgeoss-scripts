@@ -34,7 +34,6 @@ def parse_xml(filePath):
         { 'key': 'is_output', 'value': True }
     ]
     fields_mapping = {
-        'abstract': 'abstract',
         'purpose': 'purpose',
         'lineage': 'lineage',
         'supplementalInformation': 'supplemental_information',
@@ -50,6 +49,9 @@ def parse_xml(filePath):
             if key == 'title':
                 data_dict['title'] = value.strip()
                 data_dict['name'] = value.strip().replace(' ', '_').lower()
+
+            if key == 'abstract':
+                data_dict['notes'] = value.strip()
 
             if key == 'resourceMaintenance':
                 for maintanance_attr in subitem_node.findChildren():
