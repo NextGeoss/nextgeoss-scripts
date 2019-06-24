@@ -70,11 +70,13 @@ def parse_xml(filePath):
             if key == 'beginPosition':
                 start_date = datetime.datetime.strptime(value, '%Y-%m-%d')
                 extras.append({ 'key': 'timerange_start', 'value': start_date.isoformat() })
+                extras.append({ 'key': 'StartTime', 'value': start_date.isoformat() })
 
             if key == 'endPosition':
                 end_date = datetime.datetime.strptime(value, '%Y-%m-%d')
                 end_date = end_date.replace(hour=23, minute=59, second=59)
                 extras.append({ 'key': 'timerange_end', 'value': end_date.isoformat() })
+                extras.append({ 'key': 'StopTime', 'value': end_date.isoformat() })
 
             for extra_field, normalized_field in fields_mapping.items():
                 if key == extra_field:
