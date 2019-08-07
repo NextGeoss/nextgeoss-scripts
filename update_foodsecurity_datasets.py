@@ -1,6 +1,6 @@
 """
 This script was created to update the foodsecurity packages which were already harvested.
-The point is to:
+It aims to:
 - add them to the group `foodsecurity`
 - mark them as output datasets
 """
@@ -16,10 +16,18 @@ import pprint
 try:
     API_TOKEN = os.environ['API_TOKEN']
     CKAN_BASE_URL = os.environ['CKAN_BASE_URL']
-    COLLECTION_IDS = os.environ['COLLECTION_IDS'].split(',')
 except KeyError as missing_key:
     print('Please set the environment variable for {}'.format(missing_key))
     sys.exit(1)
+
+DEFAULT_COLLECTION_IDS = ['NEXTGEOSS_SENTINEL2_FAPAR', 'NEXTGEOSS_SENTINEL2_FCOVER', 'NEXTGEOSS_SENTINEL2_LAI', 'NEXTGEOSS_SENTINEL2_NDVI']
+COLLECTION_IDS = os.environ.get('COLLECTION_IDS')
+if COLLECTION_IDS is None:
+    COLLECTION_IDS = DEFAULT_COLLECTION_IDS
+    print('Using default FoodSecurity collection ids: {}'.format(DEFAULT_COLLECTION_IDS))
+    print('Overwrite COLLECTION_IDS otherwise')
+else:
+    COLLECTION_IDS = COLLECTION_IDS.split(',')
 
 def get_collection_packages(collection_id):
     """Retrieve all the packages pertaining to the given organization
