@@ -9,8 +9,6 @@ import requests
 import json
 import os
 import sys
-import glob
-import datetime
 import pprint
 
 try:
