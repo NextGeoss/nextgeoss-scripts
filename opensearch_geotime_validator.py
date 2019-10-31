@@ -102,6 +102,36 @@ COLLECTION_IDS = [
     "AVERAGE_FLOOD_MAGNITUDE",
 ]
 
+OS_CHECKS = {
+    'OgcOpenSearchGeoTimeExtension': [
+        'validate_osdd_ogc_opensearch_time_compliance',
+        'validate_response_ogc_atom_feed_compliance',
+        'validate_response_ogc_atom_opensearch_compliance',
+        'validate_response_ogc_atom_opensearch_geo_compliance',
+        'validate_response_ogc_atom_opensearch_time_compliance',
+        'validate_osdd_ogc_opensearch_geo_compliance',
+        'validate_osdd_ogc_opensearch_base_compliance',
+    ],
+    'OpenSearchSpecification': [
+        'validate_description',
+        'validate_short_name',
+        'validate_url_of_type_atom',
+        'validate_well_formed_xml',
+        'validate_osdd_contains_OpenSearchDescription_element_with_correct_namespace',
+        'validate_result_contains_totalResults_itemsPerPage_startIndex',
+        'validate_osdd_schema_compliance',
+        'validate_search_response_has_request_search_query',
+        'validate_url_template_syntax',
+        'validate_query_example',
+        'validate_response_schema_compliance',
+    ],
+    'OgcOpenSearchEarthObservationExtension': [
+        'validate_osdd_ogc_eox_base_compliance',
+        'validate_osdd_ogc_eox_extension_compliance',
+        'validate_response_ogc_eox_extension_compliance',
+    ]
+}
+
 def requests_retry_session(retries=3, backoff_factor=0.2, status_forcelist=(500, 502, 503, 504), session=None):
     session = session or requests.Session()
     retry = Retry(
@@ -116,24 +146,15 @@ def requests_retry_session(retries=3, backoff_factor=0.2, status_forcelist=(500,
     session.mount('https://', adapter)
     return session
 
-def validate_collection(collection_id):
+def validate_collection(model, collection_id):
     """Perform OpenSearch checks on collection
         Returns: collection_id as a dict
     """
 
     base_os_url = "https://opensearch-ui.earthdata.nasa.gov/validations/execute_validation.json"
-    model = "OgcOpenSearchGeoTimeExtension"
     osdd = "https://catalogue.nextgeoss.eu/opensearch/description.xml?osdd={}".format(collection_id)
     print('Checking {}'.format(osdd))
-    checks = [
-        'validate_osdd_ogc_opensearch_time_compliance',
-        'validate_response_ogc_atom_feed_compliance',
-        'validate_response_ogc_atom_opensearch_compliance',
-        'validate_response_ogc_atom_opensearch_geo_compliance',
-        'validate_response_ogc_atom_opensearch_time_compliance',
-        'validate_osdd_ogc_opensearch_geo_compliance',
-        'validate_osdd_ogc_opensearch_base_compliance',
-    ]
+    checks = OS_CHECKS[model]
     results = {}
     for check in checks:
         try:
@@ -160,20 +181,20 @@ if __name__ == "__main__":
             $ pip install -r requirements.txt
             $ python openserch_geotime_validator.py
     """
-
-    with open('./opensearch_results/failing_checks.csv', 'w') as csvfile:
-        headers = ['collection_id', 'check', 'score', 'error', 'hint']
-        writer = csv.DictWriter(csvfile, fieldnames=headers)
-        writer.writeheader()
-        for collection_id in COLLECTION_IDS:
-            collection_results = validate_collection(collection_id)
-            for check, result in collection_results.items():
-                if result['score'] < 5:
-                    row = {
-                        'collection_id': collection_id,
-                        'check': check,
-                        'score': result['score'],
-                        'error': result['failure_detail'],
-                        'hint': result['further_remarks'],
-                    }
-                    writer.writerow(row)
+    for model in OS_CHECKS:
+        with open('./opensearch_results/failing_{0}.csv'.format(model), 'w') as csvfile:
+            headers = ['collection_id', 'check', 'score', 'error', 'hint']
+            writer = csv.DictWriter(csvfile, fieldnames=headers)
+            writer.writeheader()
+            for collection_id in COLLECTION_IDS:
+                collection_results = validate_collection(model, collection_id)
+                for check, result in collection_results.items():
+                    if result['score'] < 5:
+                        row = {
+                            'collection_id': collection_id,
+                            'check': check,
+                            'score': result['score'],
+                            'error': result['failure_detail'],
+                            'hint': result['further_remarks'],
+                        }
+                        writer.writerow(row)
