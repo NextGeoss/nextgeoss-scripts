@@ -168,6 +168,12 @@ def create_package(package_attrs):
 
 
 if __name__ == "__main__":
+    """
+        Create packages (datasets) from the LAI products (static EBVs) XML files.
+        To run this script:
+            $ pip install -r requirements.txt
+            $ API_TOKEN={api_token} CKAN_BASE_URL={http://localhost:5000} OWNER_ORG_ID={lai} XML_DIR={path_to_dir} python create_lai_output_datasets.py
+    """
     pathFormat = os.path.join(XML_DIR, '*.xml')
     filePaths = glob.glob(pathFormat)
     for filePath in filePaths:
