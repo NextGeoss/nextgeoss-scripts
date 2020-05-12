@@ -69,14 +69,14 @@ def parse_xml(filePath):
             # and timerange_end the end of that day
             if key == 'beginPosition':
                 start_date = datetime.datetime.strptime(value, '%Y-%m-%d')
-                extras.append({ 'key': 'timerange_start', 'value': start_date.isoformat() })
-                extras.append({ 'key': 'StartTime', 'value': start_date.isoformat() })
+                extras.append({ 'key': 'timerange_start', 'value': start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z") })
+                extras.append({ 'key': 'StartTime', 'value': start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z") })
 
             if key == 'endPosition':
                 end_date = datetime.datetime.strptime(value, '%Y-%m-%d')
                 end_date = end_date.replace(hour=23, minute=59, second=59)
-                extras.append({ 'key': 'timerange_end', 'value': end_date.isoformat() })
-                extras.append({ 'key': 'StopTime', 'value': end_date.isoformat() })
+                extras.append({ 'key': 'timerange_end', 'value': end_date.strftime("%Y-%m-%dT%H:%M:%S.000Z") })
+                extras.append({ 'key': 'StopTime', 'value': end_date.strftime("%Y-%m-%dT%H:%M:%S.000Z") })
 
             for extra_field, normalized_field in fields_mapping.items():
                 if key == extra_field:
@@ -121,6 +121,21 @@ def parse_xml(filePath):
     data_dict['extras'] = extras
     return data_dict
 
+def search_package(package_attrs):
+    """Searches for existing packages with the same name
+        Returns: the attributes of the existing package as a dict or None
+    """
+
+    try:
+        resp = requests.get('{}/api/action/package_show'.format(CKAN_BASE_URL),
+                params={ 'id': package_attrs['name'] })
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError:
+        print('Error retrieving package `{}`: {}'.format(package_attrs['name'], resp.text))
+        return None
+    else:
+        return resp.json()
+
 def create_resource(package, filePath):
     """Creates a resource from the original xml file
         Returns: the attributes of the newly created resource as a dict
@@ -146,30 +161,35 @@ def create_resource(package, filePath):
         print('Successfully created resource `{}`'.format(filePath))
         return resp.json()
 
-def create_package(package_attrs):
+def upsert_package(package_attrs, existing_package=None):
     """Creates a package (dataset) in NextGEOSS from package_attrs
         Returns: the attributes of the newly created package as a dict
         Raises: request errors if any
     """
 
     try:
-        resp = requests.post('{}/api/action/package_create'.format(CKAN_BASE_URL),
-            data = json.dumps(package_attrs),
-            headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
-            verify=False)
+        if existing_package is not None:
+            resp = requests.post('{}/api/action/package_update'.format(CKAN_BASE_URL),
+                json.dumps(package_attrs),
+                headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
+                verify=False)
+        else:
+            resp = requests.post('{}/api/action/package_create'.format(CKAN_BASE_URL),
+                json.dumps(package_attrs),
+                headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
+                verify=False)
         resp.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        print('Error creating dataset `{}`: {}'.format(package_attrs['name'], resp.text))
+        print('Error upserting dataset `{}`: {}'.format(package_attrs['name'], resp.text))
         print('Dataset attributes: {}'.format(package_attrs))
         raise e
     else:
-        print('Successfully updated package `{}`'.format(package_attrs['name']))
+        print('Successfully upserted package `{}`'.format(package_attrs['name']))
         return resp.json()
-
 
 if __name__ == "__main__":
     """
-        Create packages (datasets) from the LAI products (static EBVs) XML files.
+        Upsert packages (datasets) from the LAI products (static EBVs) XML files.
         To run this script:
             $ pip install -r requirements.txt
             $ API_TOKEN={api_token} CKAN_BASE_URL={http://localhost:5000} OWNER_ORG_ID={lai} XML_DIR={path_to_dir} python create_lai_output_datasets.py
@@ -178,8 +198,9 @@ if __name__ == "__main__":
     filePaths = glob.glob(pathFormat)
     for filePath in filePaths:
         package_attrs = parse_xml(filePath)
+        existing_package = search_package(package_attrs)
         try:
-            package_response = create_package(package_attrs)
+            package_response = upsert_package(package_attrs, existing_package)
         except requests.exceptions.HTTPError as e:
             continue
         else:
