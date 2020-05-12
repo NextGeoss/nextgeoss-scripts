@@ -170,13 +170,12 @@ def upsert_package(package_attrs, existing_package=None):
     try:
         if existing_package is not None:
             resp = requests.post('{}/api/action/package_update'.format(CKAN_BASE_URL),
-                params={ 'id': existing_package['result']['id'] },
-                data = json.dumps(package_attrs),
+                json.dumps(package_attrs),
                 headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
                 verify=False)
         else:
             resp = requests.post('{}/api/action/package_create'.format(CKAN_BASE_URL),
-                data = json.dumps(package_attrs),
+                json.dumps(package_attrs),
                 headers = {"Authorization": API_TOKEN, 'content-type': 'application/json'},
                 verify=False)
         resp.raise_for_status()
@@ -186,7 +185,7 @@ def upsert_package(package_attrs, existing_package=None):
         raise e
     else:
         print('Successfully upserted package `{}`'.format(package_attrs['name']))
-        return resp.json()    
+        return resp.json()
 
 if __name__ == "__main__":
     """
