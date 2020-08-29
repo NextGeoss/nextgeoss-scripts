@@ -1,2 +1,2 @@
 # nextgeoss-scripts
-Scripts used for automating operations on NextGeoss (creating topics, datasets, etc)
+Scripts used for automating operations on NextGeoss (creating datasets, etc)
