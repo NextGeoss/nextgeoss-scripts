@@ -4,7 +4,8 @@ import os
 import sys
 import glob
 import datetime
-import pprint
+import configparser
+
 from bs4 import BeautifulSoup as Soup
 
 try:
@@ -16,6 +17,19 @@ except KeyError as missing_key:
     print('Please set the environment variable for {}'.format(missing_key))
     sys.exit(1)
 
+
+def read_config_parameters():
+    read_config = configparser.ConfigParser()
+    read_config.read("credentials.ini")
+
+    return read_config
+
+
+class Datasets(object):
+    def __init__(self):
+        self.config = read_config_parameters()
+        self.ckan_url = self.config.get("ckan", "ckan_url")
+        self.api_token = self.config.get("ckan", "ckan_api_token")
 
 def parse_xml(filePath):
     """Parses original metadata file.
