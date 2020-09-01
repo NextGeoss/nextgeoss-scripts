@@ -20,7 +20,7 @@ ckan_api_token = sys admin API key
 
 4. Run the script and follow the questions
 
-``` python pilots_script.py ```
+``` python output_datasets.py ```
 
 
 ## How to get the credentials for the credentials.ini file
